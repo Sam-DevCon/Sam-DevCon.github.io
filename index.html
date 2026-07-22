@@ -696,6 +696,29 @@
       return d;
     }
 
+    // The "5 output lines per scene" rule keeps the height stable only while
+    // nothing wraps. On narrow screens each scene wraps differently, so measure
+    // every scene and pin the box to the tallest — otherwise the page jumps
+    // under the reader every few seconds.
+    function lockHeight(){
+      const saved = body.innerHTML;
+      body.style.minHeight = '';
+      let max = 0;
+      for(const s of SCENES){
+        body.textContent = '';
+        const l = el('div','ln');
+        l.innerHTML = PROMPT + '<span class="cmd">' + hl(s.cmd) + '</span>';
+        body.appendChild(l);
+        s.out.forEach(o => body.appendChild(outLine(o)));
+        const t = el('div','ln'); t.innerHTML = PROMPT; body.appendChild(t);
+        max = Math.max(max, body.scrollHeight);
+      }
+      body.innerHTML = saved;
+      body.style.minHeight = max + 'px';
+    }
+    lockHeight();
+    let rsz; addEventListener('resize', ()=>{ clearTimeout(rsz); rsz = setTimeout(lockHeight, 200); });
+
     async function play(scene){
       body.textContent = '';
       const line = el('div','ln');
@@ -748,7 +771,7 @@
   const AR = {
     logo:'سالم مبارك',
     nav_about:'نبذة', nav_skills:'المهارات', nav_experience:'الخبرة', nav_projects:'المشاريع', nav_cta:'تواصل',
-    h_status:'متاح للعمل · الكويت ·  ',
+    h_status:'متاح للعمل · الكويت',
     h_title:'مسؤول أنظمة<br>و<span class="grad">مطوّر .NET</span>',
     h_lead:'فني تقنية معلومات أول في وزارة الداخلية الكويتية وحاصل على شهادة ITIL v4. أُصمّم وأُطوّر تطبيقات .NET متكاملة باستخدام ASP.NET Core وSQL Server، وأُدير بنية ويندوز سيرفر التحتية — من Active Directory إلى جدران الحماية — من البداية إلى النهاية.',
     h_btn1:'استعرض أعمالي', h_btn2:'تواصل عبر LinkedIn',
@@ -770,14 +793,14 @@
     ex_sub:'مسيرتي المهنية في الدعم الفني وإدارة الأنظمة والتطوير.',
     j1_date:'أبريل 2022 — حتى الآن · 4 سنوات',
     j1_title:'فني صيانة حاسب آلي أول (تقنية معلومات)',
-    j1_org:'وزارة الداخلية — الكويت · دوام كامل ·  ',
+    j1_org:'وزارة الداخلية — الكويت · دوام كامل',
     j1_b1:'تقديم الدعم الفني ضمن إدارة الدعم الفني بالوزارة، والإشراف على أعمال الصيانة والدعم.',
     j1_b2:'المساهمة في تطوير نظام التذاكر في الإدارة بما يتوافق مع معايير ITIL 4.',
     j1_b3:'تشخيص وإصلاح أعطال أجهزة المستخدمين، بما في ذلك الحواسيب المنضمّة إلى نطاق Active Directory.',
     j1_b4:'حل مشكلات العتاد والبرمجيات ومشكلات المستخدمين بكفاءة مع قيادة فريق من الفنيين.',
     j2_date:'نوفمبر 2024 — مارس 2025 · 5 أشهر',
     j2_title:'مسؤول تقنية معلومات ومنسّق مبيعات',
-    j2_org:'شركة تييرا للتجارة العامة · دوام جزئي ·  ',
+    j2_org:'شركة تييرا للتجارة العامة · دوام جزئي',
     j2_b1:'تقديم خدمات الدعم الفني للأعمال (B2B) وتنسيق عمليات المبيعات.',
     j2_b2:'التعامل مع نشر البنية التحتية واختبار البرمجيات.',
     edu_h:'التعليم',
