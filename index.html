@@ -615,7 +615,11 @@
     const term = document.getElementById('term');
     const body = document.getElementById('termBody');
     if(!term || !body) return;
-    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // keep the static session
+    // Reduced motion still cycles the scenes, just without the typing, the
+    // per-line slide-in or the blinking cursor. Phones report `reduce` for
+    // Low Power Mode too, so returning early here left a dead box on any
+    // iPhone on low battery.
+    const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const PROMPT = '<span class="t-ps">PS</span> <span class="t-path">C:\\Users\\salem</span><span class="t-op">&gt;</span> ';
 
@@ -671,10 +675,14 @@
     const el = (tag,cls) => { const n=document.createElement(tag); if(cls) n.className=cls; return n; };
     const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-    // only animate while on screen and the tab is in front
+    // Only animate while on screen and the tab is in front. threshold:0 plus a
+    // rootMargin means it pauses only once fully off-screen — a 15% threshold
+    // left a half-typed line frozen on phones, where the box is often only
+    // partly in frame.
     let onScreen = true;
     if('IntersectionObserver' in window){
-      new IntersectionObserver(es=>{ onScreen = es[0].isIntersecting; },{threshold:.15}).observe(term);
+      new IntersectionObserver(es=>{ onScreen = es[0].isIntersecting; },
+                               {threshold:0, rootMargin:'120px'}).observe(term);
     }
     async function gate(){ while(!onScreen || document.hidden){ await sleep(250); } }
 
@@ -693,30 +701,36 @@
       const line = el('div','ln');
       line.innerHTML = PROMPT + '<span class="cmd"></span>';
       const cmd = line.querySelector('.cmd');
-      const cur = el('span','cur');
-      line.appendChild(cur);
       body.appendChild(line);
 
-      await sleep(280);
-      for(let i=1; i<=scene.cmd.length; i++){
-        await gate();
-        cmd.innerHTML = hl(scene.cmd.slice(0,i));
-        await sleep(24 + Math.random()*44);          // human-ish keystrokes
-      }
-      cur.remove();
-      await sleep(420);                               // "Enter"
+      if(REDUCE){
+        // no keystroke animation, no stagger: the scene just appears
+        cmd.innerHTML = hl(scene.cmd);
+        scene.out.forEach(o => body.appendChild(outLine(o)));
+      } else {
+        const cur = el('span','cur');
+        line.appendChild(cur);
+        await sleep(280);
+        for(let i=1; i<=scene.cmd.length; i++){
+          await gate();
+          cmd.innerHTML = hl(scene.cmd.slice(0,i));
+          await sleep(24 + Math.random()*44);        // human-ish keystrokes
+        }
+        cur.remove();
+        await sleep(420);                             // "Enter"
 
-      for(const o of scene.out){
-        await gate();
-        body.appendChild(outLine(o));
-        await sleep(o.sp ? 50 : 110);
+        for(const o of scene.out){
+          await gate();
+          body.appendChild(outLine(o));
+          await sleep(o.sp ? 50 : 110);
+        }
       }
 
       const tail = el('div','ln');
       tail.innerHTML = PROMPT;
       tail.appendChild(el('span','cur'));
       body.appendChild(tail);
-      await sleep(3200);
+      await sleep(REDUCE ? 5200 : 3200);              // longer dwell when static
     }
 
     (async function loop(){
@@ -734,7 +748,7 @@
   const AR = {
     logo:'سالم مبارك',
     nav_about:'نبذة', nav_skills:'المهارات', nav_experience:'الخبرة', nav_projects:'المشاريع', nav_cta:'تواصل',
-    h_status:'متاح للعمل · الكويت · حضوري',
+    h_status:'متاح للعمل · الكويت ·  ',
     h_title:'مسؤول أنظمة<br>و<span class="grad">مطوّر .NET</span>',
     h_lead:'فني تقنية معلومات أول في وزارة الداخلية الكويتية وحاصل على شهادة ITIL v4. أُصمّم وأُطوّر تطبيقات .NET متكاملة باستخدام ASP.NET Core وSQL Server، وأُدير بنية ويندوز سيرفر التحتية — من Active Directory إلى جدران الحماية — من البداية إلى النهاية.',
     h_btn1:'استعرض أعمالي', h_btn2:'تواصل عبر LinkedIn',
@@ -756,14 +770,14 @@
     ex_sub:'مسيرتي المهنية في الدعم الفني وإدارة الأنظمة والتطوير.',
     j1_date:'أبريل 2022 — حتى الآن · 4 سنوات',
     j1_title:'فني صيانة حاسب آلي أول (تقنية معلومات)',
-    j1_org:'وزارة الداخلية — الكويت · دوام كامل · حضوري',
+    j1_org:'وزارة الداخلية — الكويت · دوام كامل ·  ',
     j1_b1:'تقديم الدعم الفني ضمن إدارة الدعم الفني بالوزارة، والإشراف على أعمال الصيانة والدعم.',
     j1_b2:'المساهمة في تطوير نظام التذاكر في الإدارة بما يتوافق مع معايير ITIL 4.',
     j1_b3:'تشخيص وإصلاح أعطال أجهزة المستخدمين، بما في ذلك الحواسيب المنضمّة إلى نطاق Active Directory.',
     j1_b4:'حل مشكلات العتاد والبرمجيات ومشكلات المستخدمين بكفاءة مع قيادة فريق من الفنيين.',
     j2_date:'نوفمبر 2024 — مارس 2025 · 5 أشهر',
     j2_title:'مسؤول تقنية معلومات ومنسّق مبيعات',
-    j2_org:'شركة تييرا للتجارة العامة · دوام جزئي · حضوري',
+    j2_org:'شركة تييرا للتجارة العامة · دوام جزئي ·  ',
     j2_b1:'تقديم خدمات الدعم الفني للأعمال (B2B) وتنسيق عمليات المبيعات.',
     j2_b2:'التعامل مع نشر البنية التحتية واختبار البرمجيات.',
     edu_h:'التعليم',
